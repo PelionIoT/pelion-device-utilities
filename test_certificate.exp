@@ -1,0 +1,51 @@
+
+set server_address [lindex $argv 0]
+set server_ca [lindex $argv 1]
+set endpoint_cert [lindex $argv 2]
+set endpoint_key [lindex $argv 3]
+
+spawn openssl s_client -connect "$server_address" \
+			-CAfile "$server_ca" \
+			-cert "$endpoint_cert" \
+			-key "$endpoint_key" \
+			-verify_return_error
+
+set timeout 5
+
+# Wait handshake success
+expect {
+	"CONNECTED(00000003)" {
+		# connected OK
+	} timeout {
+		send_user "Socket connection failed"
+		return -1
+	} eof {
+		send_user "Openssl exited unexpectly"
+		return -1
+	}
+}
+
+# Wait certificate verification
+expect {
+	"Verify return code: 0 (ok)" {
+		# Certificate check OK
+	} timeout {
+		send_user "Certificate verification failed"
+		return -1
+	} eof {
+		send_user "Openssl exited unexpectly"
+		return -1
+	}
+}
+
+# Small delay and send illegal character -> server disconnects
+sleep 1
+send "\n"
+expect "closed"
+expect eof
+
+# Get return values
+lassign [wait -i $spawn_id] pid spawnid os_error_flag value
+
+# Return openssl returncode
+return value
