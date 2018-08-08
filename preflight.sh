@@ -34,6 +34,46 @@ REPORT_FILE="./preflight.txt"
             xxd -r -ps > "$3"
     }
 
+    test_certificate()
+    {
+        # Check openssl
+        if [ ! `command -v openssl` ]; then
+            return 0
+        fi
+
+        # Don't check certificate if it doesn't exist
+        if [ ! -e "$3" ] || [ ! -e "$4" ]; then
+            return 0
+        fi
+
+        # All good continue testing
+        echo "Test \"$3\" certificate:"
+
+        # Don't stop on openssl error, we need to print more info
+        set +e
+
+        # Try open secure channel to given server
+        openssl s_client -debug -connect "$1" \
+            -CAfile "$2" \
+            -cert "$3" \
+            -key "$4" \
+            -verify_return_error </dev/null
+        # piping /dev/null to stdin causes EOF being sent
+        local OPENSSL_RETVAL=$?
+
+        # Stop on error
+        set -e
+
+        # Check openssl return value
+        if [ $OPENSSL_RETVAL -ne 0 ]; then
+            echo "openssl failed with $OPENSSL_RETVAL, possibly invalid certificate?"
+            return 1
+        fi
+        echo "succes"
+        divider
+        return 0
+    }
+
     # Stop on error
     set -e
 
@@ -145,7 +185,6 @@ REPORT_FILE="./preflight.txt"
     # Check mbed_cloud_dev_credentials.c
     if [ `command -v sed` ] && \
        [ `command -v xxd` ] && \
-       [ `command -v expect` ] && \
        [ `command -v openssl` ] && \
        [ -e "mbed_cloud_dev_credentials.c" ]
     then
@@ -167,57 +206,23 @@ REPORT_FILE="./preflight.txt"
         openssl x509 -in "parsed_developer_cert.der" -inform der -out "parsed_developer_cert.pem"
         openssl x509 -in "parsed_bootstrap_ca.der" -inform der -out "parsed_bootstrap_ca.pem"
 
-        # Test connection using mbed_cloud_dev_credentials.c
-        expect "test_certificate.exp" "$BOOTSTRAP_SERVER:5684" \
-            "parsed_bootstrap_ca.pem" \
-            "parsed_developer_cert.pem" \
-            "parsed_developer_key.pem"
+        # Test mbed_cloud_dev_credentials.c certificate
+        test_certificate "$BOOTSTRAP_SERVER:5684" "parsed_bootstrap_ca.pem" "parsed_developer_cert.pem" "parsed_developer_key.pem"
 
-        # All good, delete parsed certificates
-        rm "parsed_developer_key.der" "parsed_developer_cert.der" "parsed_bootstrap_ca.der"
-        rm "parsed_developer_key.pem" "parsed_developer_cert.pem" "parsed_bootstrap_ca.pem"
-        divider
+        # Delete parsed certificates
+        rm "parsed_bootstrap_ca.der" "parsed_developer_cert.der" "parsed_developer_key.der"
+        rm "parsed_bootstrap_ca.pem" "parsed_developer_cert.pem" "parsed_developer_key.pem"
     fi
 
     # Check developer certificate
-    if [ `command -v expect` ] && \
-       [ `command -v openssl` ] && \
-       [ -e "developer_cert.pem" ] && \
-       [ -e "developer_key.pem" ]
-    then
-        echo "Test developer certificate:"
-        expect "test_certificate.exp" "$BOOTSTRAP_SERVER:5684" \
-            "certificates/bootstrap_ca.pem" \
-            "developer_cert.pem" \
-            "developer_key.pem"
-        divider
-    fi
+    test_certificate "$BOOTSTRAP_SERVER:5684" "certificates/bootstrap_ca.pem" "developer_cert.pem" "developer_key.pem"
 
     # Check bootstrap certificate
-    if [ `command -v expect` ] && \
-       [ `command -v openssl` ] && \
-       [ -e "bootstrap_cert.pem" ] && \
-       [ -e "bootstrap_key.pem" ]
-    then
-        echo "Test bootstrap certificate:"
-        expect "test_certificate.exp" "$BOOTSTRAP_SERVER:5684" \
-            "certificates/bootstrap_ca.pem" \
-            "bootstrap_cert.pem" \
-            "bootstrap_key.pem"
-        divider
-    fi
+    test_certificate "$BOOTSTRAP_SERVER:5684" "certificates/bootstrap_ca.pem" "bootstrap_cert.pem" "bootstrap_key.pem"
 
     # Check LwM2M certificate
-    if [ `command -v expect` ] && \
-       [ `command -v openssl` ] && \
-       [ -e "lwm2m_cert.pem" ] && \
-       [ -e "lwm2m_key.pem" ]
-    then
-        echo "Test LwM2M certificate:"
-        expect "test_certificate.exp" "$LWM2M_SERVER:5684" \
-            "certificates/lwm2m_ca.pem" \
-            "lwm2m_cert.pem" \
-            "lwm2m_key.pem"
-        divider
-    fi
+    test_certificate "$LWM2M_SERVER:5684" "certificates/lwm2m_ca.pem" "lwm2m_cert.pem" "lwm2m_key.pem"
+
+    # The script didn't exit, all good
+    echo "All tests succeeded!"
 } 2>&1 | tee "$REPORT_FILE"
