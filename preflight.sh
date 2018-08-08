@@ -213,4 +213,4 @@ REPORT_FILE="./preflight.txt"
             "lwm2m_key.pem"
         divider
     fi
-} | tee "$REPORT_FILE" 2>&1
+} 2>&1 | tee "$REPORT_FILE"
