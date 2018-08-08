@@ -146,7 +146,7 @@ REPORT_FILE="./preflight.txt"
         echo "Warning: parsing C-files into arrays can be unreliable at times."
         # Parse bootstrap CA certificate
         parse_mbed_cloud_dev_credentials_c_array "mbed_cloud_dev_credentials.c" \
-            MBED_CLOUD_DEV_BOOTSTRAP_SERVER_ROOT_CA_CERTIFICATE "certificates/parsed_bootstrap_ca.der"
+            MBED_CLOUD_DEV_BOOTSTRAP_SERVER_ROOT_CA_CERTIFICATE "parsed_bootstrap_ca.der"
 
         # Parse device certificate and key from mbed_cloud_dev_credentials.c
         parse_mbed_cloud_dev_credentials_c_array "mbed_cloud_dev_credentials.c" \
@@ -158,13 +158,17 @@ REPORT_FILE="./preflight.txt"
         # Convert key and certificates to PEM
         openssl pkey -in "parsed_developer_key.der" -inform der -out "parsed_developer_key.pem"
         openssl x509 -in "parsed_developer_cert.der" -inform der -out "parsed_developer_cert.pem"
-        openssl x509 -in "certificates/parsed_bootstrap_ca.der" -inform der -out "certificates/parsed_bootstrap_ca.pem"
+        openssl x509 -in "parsed_bootstrap_ca.der" -inform der -out "parsed_bootstrap_ca.pem"
 
         # Test connection using mbed_cloud_dev_credentials.c
         expect "test_certificate.exp" "$BOOTSTRAP_SERVER:5684" \
-            "certificates/parsed_bootstrap_ca.pem" \
+            "parsed_bootstrap_ca.pem" \
             "parsed_developer_cert.pem" \
             "parsed_developer_key.pem"
+
+        # All good, delete parsed certificates
+        rm "parsed_developer_key.der" "parsed_developer_cert.der" "parsed_bootstrap_ca.der"
+        rm "parsed_developer_key.pem" "parsed_developer_cert.pem" "parsed_bootstrap_ca.pem"
         divider
     fi
 
