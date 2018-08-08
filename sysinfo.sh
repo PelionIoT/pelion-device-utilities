@@ -52,7 +52,7 @@ REPORT_FILE="./sysinfo.txt"
 		divider
 	fi
 
-	if [ -e /etc/*release ]; then
+	if [ -e /etc/lsb-release ] || [ -e /etc/os-release ]; then
 		# distro detection
 		cat /etc/*release
 		divider
