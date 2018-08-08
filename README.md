@@ -1,7 +1,7 @@
 # mbed Cloud Client preflight check
 This repository contains scripts to help check mbed Cloud Client opeartion requirements.
 ## preflight.sh
-Checks file creation permissions and network connectivity to mbed Cloud and stores a report file to ./preflight.txt. This script needs to execute without any errors in order for mbed Cloud Client to work.
+Checks file permissions, entropy generation, network connectivity and certificates and stores a report file to `./preflight.txt`. The script halts execution on first error and should succeed without any errors in order for mbed Cloud Client to work.
 
 Following certificates and keys are checked during the preflight.sh. If matching pair exists, they are used to create a test connection to mbed Cloud.
 
