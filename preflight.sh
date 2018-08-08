@@ -122,8 +122,12 @@ REPORT_FILE="./preflight.txt"
 
     # Check download integrity
     if [ `command -v sha256sum` ]; then
-        echo "Check download integrity:"
+        echo "Check download integrity with sha256sum:"
         sha256sum -c "preflight_testbinary.sha256"
+        divider
+    elif [ `command -v md5sum` ]; then
+        echo "Check download integrity with md5sum:"
+        md5sum -c "preflight_testbinary.md5"
         divider
     fi
 
