@@ -38,6 +38,7 @@ REPORT_FILE="./preflight.txt"
     {
         # Check openssl
         if [ ! `command -v openssl` ]; then
+            echo "Missing openssl, cannot verify \"$3\" certificate."
             return 0
         fi
 
@@ -69,7 +70,7 @@ REPORT_FILE="./preflight.txt"
             echo "openssl failed with $OPENSSL_RETVAL, possibly invalid certificate?"
             return 1
         fi
-        echo "succes"
+        echo "success"
         divider
         return 0
     }
@@ -101,75 +102,82 @@ REPORT_FILE="./preflight.txt"
     # =======================
     # Test entropy generation
     # =======================
+    echo "Test entropy generation:"
+    echo "In some simulated environments entropy generation can be really slow."
+    echo "This can slow down or even hang mbed Cloud Client startup."
     if [ `command -v dd` ]; then
-        echo "Test entropy generation:"
-        echo "In some simulated environments entropy generation can be really slow."
-        echo "This can slow down or even hang mbed Cloud Client startup."
         # busybox dd --version returns non-zero value -> "|| :"
         dd --version || :
-        # Not using "iflag=fullblock" as it is not available in all dd implementations.
+        # Not using "iflag=fullblock" as it is not available in all "dd" implementations.
         # This can be worked around with size set to 1 and count to 512.
+        echo "Start gathering entropy... (if the test hangs here, it means that entropy generation is slow)"
         dd if=/dev/random of=/dev/null bs=1 count=512
-        divider
+    else
+        echo "Missing dd, cannot test entropy generation speed."
     fi
+    divider
 
 
     # ===============
     # Test network
     # ===============
-    # Test DNS lookup
     LWM2M_SERVER="lwm2m.us-east-1.mbedcloud.com"
     BOOTSTRAP_SERVER="bootstrap.us-east-1.mbedcloud.com"
+
+    # Test DNS lookup
+    echo "Test DNS lookup:"
     if [ `command -v nslookup` ]; then
-        echo "Test DNS lookup:"
         nslookup "$LWM2M_SERVER"
         nslookup "$BOOTSTRAP_SERVER"
-        divider
+    else
+        echo "Missing nslookup, cannot test DNS lookup."
     fi
+    divider
 
     # Test ping mbed Cloud servers
+    echo "Test ping mbed Cloud servers:"
     if [ `command -v ping` ]; then
-        echo "Test ping mbed Cloud servers:"
         ping -c 3 "$LWM2M_SERVER"
         ping -c 3 "$BOOTSTRAP_SERVER"
-        divider
+    else
+        echo "Missing ping, cannot test ping to mbed Cloud."
     fi
+    divider
 
     # Test TCP network ports
+    echo "Test TCP network ports:"
     if [ `command -v nc` ]; then
-        echo "Test TCP network ports:"
-        # LwM2M connection
         nc -v "$LWM2M_SERVER" 5684  </dev/null
-
-        # Bootstrap connection
         nc -v "$BOOTSTRAP_SERVER" 5684  </dev/null
-        divider
+    else
+        echo "Missing nc, cannot test mbed Cloud port reachability."
     fi
+    divider
 
     # Test update download
+    echo "Test update download:"
     TEST_FILE="https://s3.amazonaws.com/mbed-customer-engineering/test.file"
     if [ `command -v wget` ]; then
-        echo "Test update download:"
         wget --version
         time wget "$TEST_FILE" --no-check-certificate --output-document "preflight_testbinary.bin"
-        divider
     elif [ `command -v curl` ]; then
-        echo "Test update download:"
         curl --version
         time curl "$TEST_FILE" --insecure --output "preflight_testbinary.bin"
-        divider
+    else
+        echo "Missing wget and curl, cannot verify network download."
     fi
+    divider
 
     # Check download integrity
-    if [ `command -v sha256sum` ]; then
-        echo "Check download integrity with sha256sum:"
+    echo "Check download integrity:"
+    if [ `command -v sha256sum` ] && [ -e "preflight_testbinary.bin" ]; then
         sha256sum -c "preflight_testbinary.sha256"
-        divider
     elif [ `command -v md5sum` ]; then
-        echo "Check download integrity with md5sum:"
         md5sum -c "preflight_testbinary.md5"
-        divider
+    else
+        echo "Missing sha256sum and md5sum, cannot verify download integrity."
     fi
+    divider
 
     # Delete downloaded file
     rm -f "preflight_testbinary.bin"
@@ -180,6 +188,8 @@ REPORT_FILE="./preflight.txt"
     # =================
     if [ `command -v openssl` ]; then
         openssl version
+    else
+        echo "Missing openssl, cannot verify certificates."
     fi
 
     # Check mbed_cloud_dev_credentials.c
@@ -212,6 +222,8 @@ REPORT_FILE="./preflight.txt"
         # Delete parsed certificates
         rm "parsed_bootstrap_ca.der" "parsed_developer_cert.der" "parsed_developer_key.der"
         rm "parsed_bootstrap_ca.pem" "parsed_developer_cert.pem" "parsed_developer_key.pem"
+    else
+        echo "Missing sed, xxd or openssl, cannot verify mbed_cloud_dev_credentials.c."
     fi
 
     # Check developer certificate
