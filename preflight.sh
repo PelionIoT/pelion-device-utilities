@@ -79,20 +79,14 @@ REPORT_FILE="./preflight.txt"
         divider
     fi
 
-    # Test secure connection
-    if [ `command -v openssl` ]; then
-        # View openssl version
-        openssl version
-
+    # Test TCP network ports
+    if [ `command -v nc` ]; then
+        echo "Test TCP network ports:"
         # LwM2M connection
-        time openssl s_client -connect "$LWM2M_SERVER:5684" \
-            -CAfile certificates/lwm2m_ca.pem \
-            -verify_return_error
+        nc -v "$LWM2M_SERVER" 5684  </dev/null
 
         # Bootstrap connection
-        time openssl s_client -connect "$BOOTSTRAP_SERVER:5684" \
-            -CAfile certificates/bootstrap_ca.pem \
-            -verify_return_error
+        nc -v "$BOOTSTRAP_SERVER" 5684  </dev/null
         divider
     fi
 
@@ -121,6 +115,10 @@ REPORT_FILE="./preflight.txt"
     # =================
     # Test certificates
     # =================
+    if [ `command -v openssl` ]; then
+        openssl version
+    fi
+
     # Check mbed_cloud_dev_credentials.c
     if [ `command -v sed` ] && \
        [ `command -v xxd` ] && \
