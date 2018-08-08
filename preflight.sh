@@ -65,8 +65,11 @@ REPORT_FILE="./preflight.txt"
         echo "Test entropy generation:"
         echo "In some simulated environments entropy generation can be really slow."
         echo "This can slow down or even hang mbed Cloud Client startup."
-        dd --version
-        time dd if=/dev/random of=/dev/null bs=512 count=10 iflag=fullblock
+        # busybox dd --version returns non-zero value -> "|| :"
+        dd --version || :
+        # Not using "iflag=fullblock" as it is not available in all dd implementations.
+        # This can be worked around with size set to 1 and count to 512.
+        dd if=/dev/random of=/dev/null bs=1 count=512
         divider
     fi
 
