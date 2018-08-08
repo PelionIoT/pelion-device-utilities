@@ -1,6 +1,12 @@
 #!/bin/sh
 # Copyright 2018 ARM Ltd.
 
+if [ ! `command -v tee` ]; then
+    echo "It seems this system doesn't have command \"tee\" available."
+    echo "\"tee\" is used for logging only and it can be replaced with \"cat\" from the last line of this script."
+    exit 1
+fi
+
 REPORT_FILE="./preflight.txt"
 {
     divider()
@@ -38,13 +44,17 @@ REPORT_FILE="./preflight.txt"
     # Test file permissions
     # =====================
     # File creation
+    echo "Test file permissions:"
     touch preflight_testfile.txt
     rm preflight_testfile.txt
+    echo "success"
     divider
 
     # Folder creation
+    echo "Folder creation:"
     mkdir preflight_testfolder
     rmdir preflight_testfolder
+    echo "success"
     divider
 
 
@@ -52,9 +62,10 @@ REPORT_FILE="./preflight.txt"
     # Test entropy generation
     # =======================
     if [ `command -v dd` ]; then
-        dd --version
+        echo "Test entropy generation:"
         echo "In some simulated environments entropy generation can be really slow."
         echo "This can slow down or even hang mbed Cloud Client startup."
+        dd --version
         time dd if=/dev/random of=/dev/null bs=512 count=10 iflag=fullblock
         divider
     fi
@@ -67,13 +78,15 @@ REPORT_FILE="./preflight.txt"
     LWM2M_SERVER="lwm2m.us-east-1.mbedcloud.com"
     BOOTSTRAP_SERVER="bootstrap.us-east-1.mbedcloud.com"
     if [ `command -v nslookup` ]; then
+        echo "Test DNS lookup:"
         nslookup "$LWM2M_SERVER"
         nslookup "$BOOTSTRAP_SERVER"
         divider
     fi
 
-    # Ping mbed Cloud servers
+    # Test ping mbed Cloud servers
     if [ `command -v ping` ]; then
+        echo "Test ping mbed Cloud servers:"
         ping -c 3 "$LWM2M_SERVER"
         ping -c 3 "$BOOTSTRAP_SERVER"
         divider
@@ -93,10 +106,12 @@ REPORT_FILE="./preflight.txt"
     # Test update download
     TEST_FILE="https://s3.amazonaws.com/mbed-customer-engineering/test.file"
     if [ `command -v wget` ]; then
+        echo "Test update download:"
         wget --version
         time wget "$TEST_FILE" --output-document "preflight_testbinary.bin"
         divider
     elif [ `command -v curl` ]; then
+        echo "Test update download:"
         curl --version
         time curl "$TEST_FILE" --output "preflight_testbinary.bin"
         divider
@@ -104,6 +119,7 @@ REPORT_FILE="./preflight.txt"
 
     # Check download integrity
     if [ `command -v sha256sum` ]; then
+        echo "Check download integrity:"
         sha256sum -c "preflight_testbinary.sha256"
         divider
     fi
@@ -126,7 +142,8 @@ REPORT_FILE="./preflight.txt"
        [ `command -v openssl` ] && \
        [ -e "mbed_cloud_dev_credentials.c" ]
     then
-        echo "Warning: parsing C-files with sed can be unreliable at times."
+        echo "Test mbed_cloud_dev_credentials.c:"
+        echo "Warning: parsing C-files into arrays can be unreliable at times."
         # Parse bootstrap CA certificate
         parse_mbed_cloud_dev_credentials_c_array "mbed_cloud_dev_credentials.c" \
             MBED_CLOUD_DEV_BOOTSTRAP_SERVER_ROOT_CA_CERTIFICATE "certificates/parsed_bootstrap_ca.der"
@@ -157,6 +174,7 @@ REPORT_FILE="./preflight.txt"
        [ -e "developer_cert.pem" ] && \
        [ -e "developer_key.pem" ]
     then
+        echo "Test developer certificate:"
         expect "test_certificate.exp" "$BOOTSTRAP_SERVER:5684" \
             "certificates/bootstrap_ca.pem" \
             "developer_cert.pem" \
@@ -170,6 +188,7 @@ REPORT_FILE="./preflight.txt"
        [ -e "bootstrap_cert.pem" ] && \
        [ -e "bootstrap_key.pem" ]
     then
+        echo "Test bootstrap certificate:"
         expect "test_certificate.exp" "$BOOTSTRAP_SERVER:5684" \
             "certificates/bootstrap_ca.pem" \
             "bootstrap_cert.pem" \
@@ -183,12 +202,11 @@ REPORT_FILE="./preflight.txt"
        [ -e "lwm2m_cert.pem" ] && \
        [ -e "lwm2m_key.pem" ]
     then
+        echo "Test LwM2M certificate:"
         expect "test_certificate.exp" "$LWM2M_SERVER:5684" \
             "certificates/lwm2m_ca.pem" \
             "lwm2m_cert.pem" \
             "lwm2m_key.pem"
         divider
     fi
-} > "$REPORT_FILE" 2>&1
-
-cat "$REPORT_FILE"
+} | tee "$REPORT_FILE" 2>&1
