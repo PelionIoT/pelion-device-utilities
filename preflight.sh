@@ -111,12 +111,12 @@ REPORT_FILE="./preflight.txt"
     if [ `command -v wget` ]; then
         echo "Test update download:"
         wget --version
-        time wget "$TEST_FILE" --output-document "preflight_testbinary.bin"
+        time wget "$TEST_FILE" --no-check-certificate --output-document "preflight_testbinary.bin"
         divider
     elif [ `command -v curl` ]; then
         echo "Test update download:"
         curl --version
-        time curl "$TEST_FILE" --output "preflight_testbinary.bin"
+        time curl "$TEST_FILE" --insecure --output "preflight_testbinary.bin"
         divider
     fi
 
