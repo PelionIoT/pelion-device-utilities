@@ -116,6 +116,8 @@ REPORT_FILE="./preflight.txt"
         # Not using "iflag=fullblock" as it is not available in all "dd" implementations.
         # This can be worked around with size set to 1 and count to 512.
         echo "Start gathering entropy... (if the test hangs here, it means that entropy generation is slow)"
+        echo "In debian based distributions installing rng-tools with \"apt-get install rng-tools\" usually"
+        echo "helps entropy generation."
         # Timing the opeartion as not all dd implementations print speed.
         time dd if=/dev/random of=/dev/null bs=1 count=512
     else
