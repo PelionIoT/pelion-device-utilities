@@ -36,7 +36,9 @@ REPORT_FILE="./preflight.txt"
             sed 's/../\\x&/g')
 
         # Write DER file to a file
-        printf "$ARRAY_DATA" > "$3"
+        # Explicitly don't use the shell builtin printf. For example,
+        # Ubuntu 16.04's sh builtin printf doesn't seem to want to print \xXX formatted hex data.
+        $(which printf) "$ARRAY_DATA" > "$3"
     }
 
     test_certificate()
