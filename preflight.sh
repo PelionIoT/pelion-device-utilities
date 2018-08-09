@@ -80,6 +80,24 @@ REPORT_FILE="./preflight.txt"
         return 0
     }
 
+    measure_time()
+    {
+        # Prefer using time (not always available)
+        if [ `command -v time` ]; then
+            time $@
+        # Date can be also used for low precision measurements
+        elif [ `command -v date` ] && [ "`date --version 2>&1 | grep GNU`" ]; then
+            local START=$(date +%s)
+            $@ # execute given commands
+            local END=$(date +%s)
+            local DIFF=$(expr $END - $START)
+            echo "Duration:$DIFF s"
+        else
+            echo "Cannot print execution time as \"time\" and \"date\" are unavailable"
+            $@ # execute without measuring
+        fi
+    }
+
     # Stop on error
     set -e
 
@@ -119,7 +137,7 @@ REPORT_FILE="./preflight.txt"
         echo "In debian based distributions installing rng-tools with \"apt-get install rng-tools\" usually"
         echo "helps entropy generation."
         # Timing the opeartion as not all dd implementations print speed.
-        time dd if=/dev/random of=/dev/null bs=1 count=512
+        measure_time dd if=/dev/random of=/dev/null bs=1 count=512
     else
         echo "Missing dd, cannot test entropy generation speed."
     fi
@@ -167,10 +185,10 @@ REPORT_FILE="./preflight.txt"
     TEST_FILE="https://s3.amazonaws.com/mbed-customer-engineering/test.file"
     if [ `command -v wget` ]; then
         wget --version
-        time wget "$TEST_FILE" --no-check-certificate --output-document "preflight_testbinary.bin"
+        measure_time wget "$TEST_FILE" --no-check-certificate --output-document "preflight_testbinary.bin"
     elif [ `command -v curl` ]; then
         curl --version
-        time curl "$TEST_FILE" --insecure --output "preflight_testbinary.bin"
+        measure_time curl "$TEST_FILE" --insecure --output "preflight_testbinary.bin"
     else
         echo "Missing wget and curl, cannot verify network download."
     fi
