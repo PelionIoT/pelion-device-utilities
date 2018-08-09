@@ -112,8 +112,8 @@ REPORT_FILE="./preflight.txt"
         # successful connection. This can be achieved with "-z" test flag or by
         # piping "</dev/null" to stdin.
 
-        # If nc has -z test option available, use it beacuse piping </dev/null to
-        # stdin in some implementations doesn't cause immediate disconnection.
+        # If nc has "-z" test option available, use it because piping "</dev/null"
+        # to stdin in some implementations doesn't cause immediate disconnection.
         if [ ! "`nc -z 2>&1 | grep 'invalid option'`" ]; then
             nc -zv "$1" "$2"
         else
