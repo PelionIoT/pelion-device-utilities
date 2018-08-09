@@ -19,19 +19,24 @@ REPORT_FILE="./preflight.txt"
     parse_mbed_cloud_dev_credentials_c_array()
     {
         # Used to parse C arrays from "mbed_cloud_dev_credentials.c"
-        #  1. remove all newlines
-        #  2. convert every ";" to newline
-        #  3. select variable of intrest ($2)
-        #  4. select everything inside {}
-        #  5. remove all ", 0x"
-        #  6. reverse convert from hex string to binary
-        cat $1 | \
+        #  1. tr -d "\n"                  - remove all newlines
+        #  2. tr ";" "\n"                 - convert every ";" to newline
+        #  3. sed -n "/$2\[\]/p"          - select line/variable of intrest ($2)
+        #  4. sed -nr 's/.*\{(.*)\}/\1/p' - select everything inside {}
+        #  5. sed 's/0x//g'               - remove every "0x"
+        #  6. tr -d ", "                  - remove every "," and " "
+        #  7. sed 's/../\\x&/g'           - prefix every byte with \x (required for hex print)
+        local ARRAY_DATA=$(cat $1 | \
             tr -d "\n" | \
             tr ";" "\n" | \
             sed -n "/$2\[\]/p" | \
             sed -nr 's/.*\{(.*)\}/\1/p' | \
-            sed 's/,* *0x//g' | \
-            xxd -r -ps > "$3"
+            sed 's/0x//g' | \
+            tr -d ", " | \
+            sed 's/../\\x&/g')
+
+        # Write DER file to a file
+        printf "$ARRAY_DATA" > "$3"
     }
 
     test_certificate()
@@ -194,7 +199,7 @@ REPORT_FILE="./preflight.txt"
 
     # Check mbed_cloud_dev_credentials.c
     if [ `command -v sed` ] && \
-       [ `command -v xxd` ] && \
+       [ `command -v printf` ] && \
        [ `command -v openssl` ] && \
        [ -e "mbed_cloud_dev_credentials.c" ]
     then
