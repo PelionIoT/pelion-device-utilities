@@ -116,7 +116,8 @@ REPORT_FILE="./preflight.txt"
         # Not using "iflag=fullblock" as it is not available in all "dd" implementations.
         # This can be worked around with size set to 1 and count to 512.
         echo "Start gathering entropy... (if the test hangs here, it means that entropy generation is slow)"
-        dd if=/dev/random of=/dev/null bs=1 count=512
+        # Timing the opeartion as not all dd implementations print speed.
+        time dd if=/dev/random of=/dev/null bs=1 count=512
     else
         echo "Missing dd, cannot test entropy generation speed."
     fi
