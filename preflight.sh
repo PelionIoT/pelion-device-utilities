@@ -98,6 +98,30 @@ REPORT_FILE="./preflight.txt"
         fi
     }
 
+    test_tcp_port()
+    {
+        echo "Testing TCP connection to $1:$2"
+        if [ ! `command -v nc` ]; then
+            echo "Missing nc, cannot test TCP port reachability"
+            return 0
+        fi
+        # Netcat can be used to test TCP connection to a remote port.
+        # In this test script, the connection should terminate immediately after
+        # successful connection. This can be achieved with "-z" test flag or by
+        # piping "</dev/null" to stdin.
+
+        # If nc has -z test option available, use it beacuse piping </dev/null to
+        # stdin in some implementations doesn't cause immediate disconnection.
+        if [ ! "`nc -z 2>&1 | grep 'invalid option'`" ]; then
+            nc -zv "$1" "$2"
+        else
+            nc -v "$1" "$2" </dev/null
+        fi
+        echo "success"
+        divider
+        return 0
+    }
+
     # Stop on error
     set -e
 
@@ -171,14 +195,8 @@ REPORT_FILE="./preflight.txt"
     divider
 
     # Test TCP network ports
-    echo "Test TCP network ports:"
-    if [ `command -v nc` ]; then
-        nc -v "$LWM2M_SERVER" 5684  </dev/null
-        nc -v "$BOOTSTRAP_SERVER" 5684  </dev/null
-    else
-        echo "Missing nc, cannot test mbed Cloud port reachability."
-    fi
-    divider
+    test_tcp_port "$LWM2M_SERVER" 5684
+    test_tcp_port "$BOOTSTRAP_SERVER" 5684
 
     # Test update download
     echo "Test update download:"
