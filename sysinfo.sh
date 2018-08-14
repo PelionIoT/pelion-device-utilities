@@ -1,21 +1,11 @@
 #!/bin/sh
 # Copyright 2018 ARM Ltd.
 
+# Load common variables and functions
+. ./common.sh
+
 REPORT_FILE="./sysinfo.txt"
 {
-	divider()
-	{
-		set +x
-		echo "---------------\n"
-		set -x
-	}
-
-	# Stop on error
-	set -e
-
-	# Print all commands
-	set -x
-
 	# ==================
 	# User & permissions
 	# ==================
