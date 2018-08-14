@@ -1,5 +1,7 @@
 #!/bin/sh
 # Copyright 2018 ARM Ltd.
+VERSION="0.3.0"
+echo "preflight check $VERSION"
 
 LWM2M_SERVER="lwm2m.us-east-1.mbedcloud.com"
 BOOTSTRAP_SERVER="bootstrap.us-east-1.mbedcloud.com"
