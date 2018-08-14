@@ -41,29 +41,41 @@ REPORT_FILE="./preflight.txt"
 
     test_certificate()
     {
-        # Check openssl
-        if [ ! `command -v openssl` ]; then
-            echo "Missing openssl, cannot verify \"$3\" certificate."
-            return 0
-        fi
+        # Tests given certificate with handshake against mbed Cloud.
+        #  $1 = "TLS" / "DTLS"
+        #  $2 = destination:port
+        #  $3 = CAfile
+        #  $4 = Certificate
+        #  $5 = Private key
 
         # Don't check certificate if it doesn't exist
-        if [ ! -e "$3" ] || [ ! -e "$4" ]; then
+        if [ ! -e "$4" ] || [ ! -e "$5" ]; then
             return 0
         fi
 
         # All good continue testing
-        echo "Test \"$3\" certificate:"
+        echo "Test \"$4\" certificate:"
 
         # Don't stop on openssl error, we need to print more info
         set +e
 
         # Try open secure channel to given server
-        openssl s_client -debug -connect "$1" \
-            -CAfile "$2" \
-            -cert "$3" \
-            -key "$4" \
-            -verify_return_error </dev/null
+        if [ "$1" = "TLS" ]; then
+            openssl s_client -debug -connect "$2" \
+                -CAfile "$3" \
+                -cert "$4" \
+                -key "$5" \
+                -verify_return_error </dev/null
+        elif [ "$1" = "DTLS" ]; then
+            openssl s_client -dtls -debug -connect "$2" \
+                -CAfile "$3" \
+                -cert "$4" \
+                -key "$5" \
+                -verify_return_error </dev/null
+        else
+            echo "Select either \"TLS\" or \"DTLS\""
+            return 1
+        fi
         # piping /dev/null to stdin causes EOF being sent
         local OPENSSL_RETVAL=$?
 
@@ -77,6 +89,32 @@ REPORT_FILE="./preflight.txt"
         fi
         echo "success"
         divider
+        return 0
+    }
+
+    available_openssl()
+    {
+        # Check if openssl exists
+        if [ ! "`command -v openssl`" ]; then
+            echo "Missing openssl, cannot verify certificates."
+            return 1
+        fi
+
+        return 0
+    }
+
+    available_openssl_with_dtls()
+    {
+        # Check if openssl exists
+        if ! available_openssl; then
+            return 1
+        fi
+
+        # Check if openssl s_client -dtls option is available
+        if [ ! "`openssl s_client -dtls 2>&1 | grep CONNECTED`" ]; then
+            return 1
+        fi
+
         return 0
     }
 
@@ -139,7 +177,6 @@ REPORT_FILE="./preflight.txt"
     # Check mbed_cloud_dev_credentials.c
     if [ `command -v sed` ] && \
        [ `command -v printf` ] && \
-       [ `command -v openssl` ] && \
        [ -e "mbed_cloud_dev_credentials.c" ]
     then
         echo "Test mbed_cloud_dev_credentials.c:"
@@ -160,24 +197,27 @@ REPORT_FILE="./preflight.txt"
         openssl x509 -in "parsed_developer_cert.der" -inform der -out "parsed_developer_cert.pem"
         openssl x509 -in "parsed_bootstrap_ca.der" -inform der -out "parsed_bootstrap_ca.pem"
 
-        # Test mbed_cloud_dev_credentials.c certificate
-        test_certificate "$BOOTSTRAP_SERVER:5684" "parsed_bootstrap_ca.pem" "parsed_developer_cert.pem" "parsed_developer_key.pem"
-
-        # Delete parsed certificates
+        # Delete intermediate DER files
         rm "parsed_bootstrap_ca.der" "parsed_developer_cert.der" "parsed_developer_key.der"
-        rm "parsed_bootstrap_ca.pem" "parsed_developer_cert.pem" "parsed_developer_key.pem"
     else
-        echo "Missing sed, xxd or openssl, cannot verify mbed_cloud_dev_credentials.c."
+        echo "Missing sed, printf or the certificate, cannot verify mbed_cloud_dev_credentials.c."
     fi
 
-    # Check developer certificate
-    test_certificate "$BOOTSTRAP_SERVER:5684" "certificates/bootstrap_ca.pem" "developer_cert.pem" "developer_key.pem"
+    # Check certificates with TLS
+    if available_openssl; then
+        test_certificate "TLS" "$BOOTSTRAP_SERVER:5684" "parsed_bootstrap_ca.pem"       "parsed_developer_cert.pem" "parsed_developer_key.pem"
+        test_certificate "TLS" "$BOOTSTRAP_SERVER:5684" "certificates/bootstrap_ca.pem" "developer_cert.pem"        "developer_key.pem"
+        test_certificate "TLS" "$BOOTSTRAP_SERVER:5684" "certificates/bootstrap_ca.pem" "bootstrap_cert.pem"        "bootstrap_key.pem"
+        test_certificate "TLS" "$LWM2M_SERVER:5684"     "certificates/lwm2m_ca.pem"     "lwm2m_cert.pem"            "lwm2m_key.pem"
+    fi
 
-    # Check bootstrap certificate
-    test_certificate "$BOOTSTRAP_SERVER:5684" "certificates/bootstrap_ca.pem" "bootstrap_cert.pem" "bootstrap_key.pem"
-
-    # Check LwM2M certificate
-    test_certificate "$LWM2M_SERVER:5684" "certificates/lwm2m_ca.pem" "lwm2m_cert.pem" "lwm2m_key.pem"
+    # Check certificates with DTLS (openssl with -dtls)
+    if available_openssl_with_dtls; then
+        test_certificate "DTLS" "$BOOTSTRAP_SERVER:5684" "parsed_bootstrap_ca.pem"       "parsed_developer_cert.pem" "parsed_developer_key.pem"
+        test_certificate "DTLS" "$BOOTSTRAP_SERVER:5684" "certificates/bootstrap_ca.pem" "developer_cert.pem"        "developer_key.pem"
+        test_certificate "DTLS" "$BOOTSTRAP_SERVER:5684" "certificates/bootstrap_ca.pem" "bootstrap_cert.pem"        "bootstrap_key.pem"
+        test_certificate "DTLS" "$LWM2M_SERVER:5684"     "certificates/lwm2m_ca.pem"     "lwm2m_cert.pem"            "lwm2m_key.pem"
+    fi
 
     # The script didn't exit, all good
     echo "All tests succeeded!"

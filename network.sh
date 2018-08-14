@@ -22,9 +22,29 @@ test_tcp_port()
     # to stdin in some implementations doesn't cause immediate disconnection.
     if [ ! "`nc -z 2>&1 | grep 'invalid option'`" ]; then
         nc -zv "$1" "$2"
+        # -z   - test port (not always available)
+        # -v   - verbose
     else
         nc -v "$1" "$2" </dev/null
     fi
+    echo "success"
+    divider
+    return 0
+}
+
+test_udp_port()
+{
+    echo "Testing UDP connection to $1:$2"
+    if [ ! `command -v nc` ] || [ "`nc -z 2>&1 | grep 'invalid option'`" ]; then
+        echo "Missing nc with -z option, cannot test UDP port reachability"
+        return 0
+    fi
+
+    nc -uzv -w3 "$1" "$2"
+    # -u   - UDP (wait ICMP message back)
+    # -z   - test port
+    # -v   - verbose
+    # -w3  - timeout after 3 seconds
     echo "success"
     divider
     return 0
@@ -53,6 +73,10 @@ divider
 # Test TCP network ports
 test_tcp_port "$LWM2M_SERVER" 5684
 test_tcp_port "$BOOTSTRAP_SERVER" 5684
+
+# Test UDP network ports
+test_udp_port "$LWM2M_SERVER" 5684
+test_udp_port "$BOOTSTRAP_SERVER" 5684
 
 # Test update download
 echo "Test update download:"
