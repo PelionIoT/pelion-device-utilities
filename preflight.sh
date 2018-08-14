@@ -41,7 +41,7 @@ REPORT_FILE="./preflight.txt"
 
     test_certificate()
     {
-        # Tests given certificate with handshake against mbed Cloud.
+        # Tests given certificate with handshake against Pelion servers.
         #  $1 = "TLS" / "DTLS"
         #  $2 = destination:port
         #  $3 = CAfile

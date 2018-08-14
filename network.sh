@@ -60,13 +60,13 @@ else
 fi
 divider
 
-# Test ping mbed Cloud servers
-echo "Test ping mbed Cloud servers:"
+# Test ping Pelion servers
+echo "Test ping Pelion servers:"
 if [ `command -v ping` ]; then
     ping -c 3 "$LWM2M_SERVER"
     ping -c 3 "$BOOTSTRAP_SERVER"
 else
-    echo "Missing ping, cannot test ping to mbed Cloud."
+    echo "Missing ping, cannot test ping to Pelion."
 fi
 divider
 
