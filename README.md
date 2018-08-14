@@ -50,3 +50,43 @@ Saves OS architecture and distribution information to `./sysinfo.txt` to help mb
 System info script can be run with:
 
     ./sysinfo.sh
+
+## Transferring preflight script to the Device-Under-Test
+A makefile is provided within the project to tar archive all the important files and convert it to Base64 encoded string. This string then can be pasted through terminal for easy file transfer to the DUT (Device-Under-Test).
+
+### Compressed (recommended)
+The package Base64 string can be created with:
+
+    make base64
+
+The Base64 string can be received on the DUT side with following command:
+
+    mkdir preflight
+    cd preflight
+    base64 -d | tar -xzf -
+    # paste full Base64 string
+    # send enter
+    # send EOF with ctrl+d
+    # the tar archive is now extracted to the current directory
+
+### Uncompressed
+In case the DUT doesn't have ability to extract compressed tar archives, uncompressed version can be used:
+
+    make base64_uncompressed
+
+The uncompressed Base64 string can be received on the DUT with following command:
+
+    mkdir preflight
+    cd preflight
+    base64 -d | tar -xf -
+    # pase full Base64 string
+    # send enter
+    # send EOF with ctrl+x
+    # the tar archive is now extracted to the current directory
+
+### Tar archives
+Plain tar archives can be created with:
+
+    make tar
+    # or
+    make tar_uncompressed
