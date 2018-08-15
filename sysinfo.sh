@@ -91,6 +91,13 @@ REPORT_FILE="./sysinfo.txt"
 		divider
 	fi
 
+	# if root, check Real-Time-Clock (RTC) with hwclock
+	if [ `command -v hwclock` ] && [ "`id -u`" = "0" ]; then
+		echo "A Real-Time-Clock (RTC) is available on the system."
+		hwclock -r
+		divider
+	fi
+
 	# ===========
 	# Compilation
 	# ===========
