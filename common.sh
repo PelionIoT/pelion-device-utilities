@@ -1,6 +1,6 @@
 #!/bin/sh
 # Copyright 2018 ARM Ltd.
-VERSION="0.3.1"
+VERSION="0.4.0"
 echo "preflight check $VERSION"
 
 LWM2M_SERVER="lwm2m.us-east-1.mbedcloud.com"

@@ -140,6 +140,12 @@ REPORT_FILE="./preflight.txt"
     # Test entropy generation
     # =======================
     echo "Test entropy generation:"
+    echo "Print entropy pool size"
+    if [ -e "/proc/sys/kernel/random/" ]; then
+        find "/proc/sys/kernel/random/" -type f -exec sh -c "echo {}:; cat {}" \;
+        divider
+    fi
+
     echo "In some simulated environments entropy generation can be really slow."
     echo "This can slow down or even hang mbed Cloud Client startup."
     if [ `command -v dd` ]; then
