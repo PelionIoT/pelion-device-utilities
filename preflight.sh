@@ -251,6 +251,8 @@ REPORT_FILE="./preflight.txt"
         test_certificate "DTLS" "$BOOTSTRAP_SERVER:5684" "./certificates/bootstrap_ca.pem" "./developer_cert.pem"              "./developer_key.pem"
         test_certificate "DTLS" "$BOOTSTRAP_SERVER:5684" "./certificates/bootstrap_ca.pem" "./bootstrap_cert.pem"              "./bootstrap_key.pem"
         test_certificate "DTLS" "$LWM2M_SERVER:5684"     "./certificates/lwm2m_ca.pem"     "./lwm2m_cert.pem"                  "./lwm2m_key.pem"
+    else
+        echo "Missing DTLS support from openssl, cannot verify DTLS connections"
     fi
 
     # The script didn't exit, all good
