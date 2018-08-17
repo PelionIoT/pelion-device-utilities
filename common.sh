@@ -43,5 +43,10 @@ measure_time()
 # Stop on error
 set -e
 
+# Check cache folder existence
+if [ ! -d "./cache" ]; then
+    mkdir cache
+fi
+
 # Print all commands
 #set -x

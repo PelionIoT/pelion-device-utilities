@@ -91,15 +91,16 @@ divider
 
 # Test update download
 echo "Test update download:"
-TEST_FILE="https://s3.amazonaws.com/mbed-customer-engineering/test.file"
+DOWNLOAD_URL="https://s3.amazonaws.com/mbed-customer-engineering/test.file"
+DOWNLOAD_FILE="./cache/preflight_testbinary.bin"
 if [ `command -v wget` ]; then
     wget --version
-    echo "wget \"$TEST_FILE\""
-    measure_time wget "$TEST_FILE" --no-check-certificate --output-document "preflight_testbinary.bin"
+    echo "wget \"$DOWNLOAD_URL\""
+    measure_time wget "$DOWNLOAD_URL" --no-check-certificate --output-document "$DOWNLOAD_FILE"
 elif [ `command -v curl` ]; then
     curl --version
-    echo "curl \"$TEST_FILE\""
-    measure_time curl "$TEST_FILE" --insecure --output "preflight_testbinary.bin"
+    echo "curl \"$DOWNLOAD_URL\""
+    measure_time curl "$DOWNLOAD_URL" --insecure --output "$DOWNLOAD_FILE"
 else
     echo "Missing wget and curl, cannot verify network download."
 fi
@@ -107,7 +108,7 @@ divider
 
 # Check download integrity
 echo "Check download integrity:"
-if [ `command -v sha256sum` ] && [ -e "preflight_testbinary.bin" ]; then
+if [ `command -v sha256sum` ] && [ -e "$DOWNLOAD_FILE" ]; then
     echo "sha256sum"
     sha256sum -c "preflight_testbinary.sha256"
 elif [ `command -v md5sum` ]; then
@@ -119,4 +120,4 @@ fi
 divider
 
 # Delete downloaded file
-rm -f "preflight_testbinary.bin"
+rm -f "$DOWNLOAD_FILE"

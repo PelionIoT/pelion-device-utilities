@@ -216,23 +216,20 @@ REPORT_FILE="./preflight.txt"
         extra_info_stop
         # Parse bootstrap CA certificate
         parse_mbed_cloud_dev_credentials_c_array "mbed_cloud_dev_credentials.c" \
-            MBED_CLOUD_DEV_BOOTSTRAP_SERVER_ROOT_CA_CERTIFICATE "parsed_bootstrap_ca.der"
+            MBED_CLOUD_DEV_BOOTSTRAP_SERVER_ROOT_CA_CERTIFICATE "./cache/parsed_bootstrap_ca.der"
 
         # Parse device certificate and key from mbed_cloud_dev_credentials.c
         parse_mbed_cloud_dev_credentials_c_array "mbed_cloud_dev_credentials.c" \
-            MBED_CLOUD_DEV_BOOTSTRAP_DEVICE_CERTIFICATE "parsed_developer_cert.der"
+            MBED_CLOUD_DEV_BOOTSTRAP_DEVICE_CERTIFICATE "./cache/parsed_developer_cert.der"
 
         parse_mbed_cloud_dev_credentials_c_array "mbed_cloud_dev_credentials.c" \
-            MBED_CLOUD_DEV_BOOTSTRAP_DEVICE_PRIVATE_KEY "parsed_developer_key.der"
+            MBED_CLOUD_DEV_BOOTSTRAP_DEVICE_PRIVATE_KEY "./cache/parsed_developer_key.der"
 
         # Convert key and certificates to PEM
         set -x
-        openssl pkey -in "parsed_developer_key.der" -inform der -out "parsed_developer_key.pem"
-        openssl x509 -in "parsed_developer_cert.der" -inform der -out "parsed_developer_cert.pem"
-        openssl x509 -in "parsed_bootstrap_ca.der" -inform der -out "parsed_bootstrap_ca.pem"
-
-        # Delete intermediate DER files
-        rm "parsed_bootstrap_ca.der" "parsed_developer_cert.der" "parsed_developer_key.der"
+        openssl pkey -in "./cache/parsed_developer_key.der"  -inform der -out "./cache/parsed_developer_key.pem"
+        openssl x509 -in "./cache/parsed_developer_cert.der" -inform der -out "./cache/parsed_developer_cert.pem"
+        openssl x509 -in "./cache/parsed_bootstrap_ca.der"   -inform der -out "./cache/parsed_bootstrap_ca.pem"
         set +x
     else
         echo "Missing sed, printf or the certificate, cannot verify mbed_cloud_dev_credentials.c."
@@ -241,19 +238,19 @@ REPORT_FILE="./preflight.txt"
     # Check certificates with TLS
     echo "Test TLS Handshake:"
     if available_openssl; then
-        test_certificate "TLS" "$BOOTSTRAP_SERVER:5684" "parsed_bootstrap_ca.pem"       "parsed_developer_cert.pem" "parsed_developer_key.pem"
-        test_certificate "TLS" "$BOOTSTRAP_SERVER:5684" "certificates/bootstrap_ca.pem" "developer_cert.pem"        "developer_key.pem"
-        test_certificate "TLS" "$BOOTSTRAP_SERVER:5684" "certificates/bootstrap_ca.pem" "bootstrap_cert.pem"        "bootstrap_key.pem"
-        test_certificate "TLS" "$LWM2M_SERVER:5684"     "certificates/lwm2m_ca.pem"     "lwm2m_cert.pem"            "lwm2m_key.pem"
+        test_certificate "TLS" "$BOOTSTRAP_SERVER:5684" "./cache/parsed_bootstrap_ca.pem" "./cache/parsed_developer_cert.pem" "./cache/parsed_developer_key.pem"
+        test_certificate "TLS" "$BOOTSTRAP_SERVER:5684" "./certificates/bootstrap_ca.pem" "./developer_cert.pem"              "./developer_key.pem"
+        test_certificate "TLS" "$BOOTSTRAP_SERVER:5684" "./certificates/bootstrap_ca.pem" "./bootstrap_cert.pem"              "./bootstrap_key.pem"
+        test_certificate "TLS" "$LWM2M_SERVER:5684"     "./certificates/lwm2m_ca.pem"     "./lwm2m_cert.pem"                  "./lwm2m_key.pem"
     fi
 
     # Check certificates with DTLS (openssl with -dtls)
     echo "Test DTLS Handshake:"
     if available_openssl_with_dtls; then
-        test_certificate "DTLS" "$BOOTSTRAP_SERVER:5684" "parsed_bootstrap_ca.pem"       "parsed_developer_cert.pem" "parsed_developer_key.pem"
-        test_certificate "DTLS" "$BOOTSTRAP_SERVER:5684" "certificates/bootstrap_ca.pem" "developer_cert.pem"        "developer_key.pem"
-        test_certificate "DTLS" "$BOOTSTRAP_SERVER:5684" "certificates/bootstrap_ca.pem" "bootstrap_cert.pem"        "bootstrap_key.pem"
-        test_certificate "DTLS" "$LWM2M_SERVER:5684"     "certificates/lwm2m_ca.pem"     "lwm2m_cert.pem"            "lwm2m_key.pem"
+        test_certificate "DTLS" "$BOOTSTRAP_SERVER:5684" "./cache/parsed_bootstrap_ca.pem" "./cache/parsed_developer_cert.pem" "./cache/parsed_developer_key.pem"
+        test_certificate "DTLS" "$BOOTSTRAP_SERVER:5684" "./certificates/bootstrap_ca.pem" "./developer_cert.pem"              "./developer_key.pem"
+        test_certificate "DTLS" "$BOOTSTRAP_SERVER:5684" "./certificates/bootstrap_ca.pem" "./bootstrap_cert.pem"              "./bootstrap_key.pem"
+        test_certificate "DTLS" "$LWM2M_SERVER:5684"     "./certificates/lwm2m_ca.pem"     "./lwm2m_cert.pem"                  "./lwm2m_key.pem"
     fi
 
     # The script didn't exit, all good
