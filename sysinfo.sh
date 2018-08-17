@@ -85,7 +85,7 @@ fi
 if [ `command -v hwclock` ] && [ "`id -u`" = "0" ]; then
 	echo "A Real-Time-Clock (RTC) is available on the system."
 	echo "hwclock -r"
-	hwclock -r
+	hwclock -r || :
 	divider
 fi
 
