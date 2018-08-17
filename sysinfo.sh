@@ -4,122 +4,138 @@
 # Load common variables and functions
 . ./common.sh
 
-REPORT_FILE="./sysinfo.txt"
-{
-	# ==================
-	# User & permissions
-	# ==================
-	# User ID
-    id -u
-    divider
+# ==================
+# User & permissions
+# ==================
+# User ID
+echo "id -u"
+id -u
+divider
 
-    # Username
-    who
-    divider
+# Username
+echo "who"
+who
+divider
 
-    # Folder permissions
-    ls -ld .
-    divider
+# Folder permissions
+echo "ls -ld ."
+ls -ld .
+divider
 
-	# =======================
-	# CPU & Architecture info
-	# =======================
-	# There is duplication below because, not all of these are available in every platform
-	if [ -e /proc/cpuinfo ]; then
-		cat /proc/cpuinfo
-		divider
-	fi
-
-	if [  `command -v arch` ]; then
-		# achine architecture
-		arch
-		divider
-	fi
-
-	if [ `command -v uname` ]; then
-		# kernel name, version, release
-		uname -a
-		divider
-	fi
-
-	if [ -e /etc/lsb-release ] || [ -e /etc/os-release ]; then
-		# distro detection
-		cat /etc/*release
-		divider
-	fi
-
-	echo "OSTYPE="$OSTYPE
+# =======================
+# CPU & Architecture info
+# =======================
+# There is duplication below because, not all of these are available in every platform
+if [ -e /proc/cpuinfo ]; then
+	echo "cat /proc/cpuinfo"
+	cat /proc/cpuinfo
 	divider
+fi
 
-	# ============
-	# Flash layout
-	# ============
-	if [ `command -v lsblk` ]; then
-		lsblk
-		divider
-	fi
-
-	if [ -e /proc/mtd ]; then
-		cat /proc/mtd
-		divider
-	fi
-
-	# =============
-	# Default shell
-	# =============
-	echo "$SHELL"
+if [  `command -v arch` ]; then
+	echo "arch"
+	arch
 	divider
+fi
 
-	if [ "$SHELL" = "/bin/sh" ] || [ "$SHELL" = "/bin/bash" ]; then
-		"$SHELL" --version
-		divider
-	fi
+if [ `command -v uname` ]; then
+	echo "uname -a"
+	# kernel name, version, release
+	uname -a
+	divider
+fi
 
-	# ===============
-	# Busybox version
-	# ===============
-	if [ `command -v busybox` ]; then
-		busybox --help
-		divider
-	fi
+if [ -e /etc/lsb-release ] || [ -e /etc/os-release ]; then
+	echo "cat /etc/*release"
+	# distribution info
+	cat /etc/*release
+	divider
+fi
 
-	# ===========
-	# System time
-	# ===========
-	if [ `command -v date` ]; then
-		date
-		divider
-	fi
+echo "OSTYPE=$OSTYPE"
+divider
 
-	# if root, check Real-Time-Clock (RTC) with hwclock
-	if [ `command -v hwclock` ] && [ "`id -u`" = "0" ]; then
-		echo "A Real-Time-Clock (RTC) is available on the system."
-		hwclock -r
-		divider
-	fi
+# ============
+# Flash layout
+# ============
+if [ `command -v lsblk` ]; then
+	echo "lsblk"
+	lsblk
+	divider
+fi
 
-	# ===========
-	# Compilation
-	# ===========
-	if [ `command -v gcc` ]; then
-		gcc --version
-		divider
-	fi
+if [ -e /proc/mtd ]; then
+	echo "cat /proc/mtd"
+	cat /proc/mtd
+	divider
+fi
 
-	if [ `command -v iccarm` ]; then
-		iccarm --version
-		divider
-	fi
+# ===========
+# System time
+# ===========
+if [ `command -v date` ]; then
+	echo "date"
+	date
+	divider
+fi
 
-	if [ `command -v armcc` ]; then
-		armcc
-		divider
-	fi
+# if root, check Real-Time-Clock (RTC) with hwclock
+if [ `command -v hwclock` ] && [ "`id -u`" = "0" ]; then
+	echo "A Real-Time-Clock (RTC) is available on the system."
+	echo "hwclock -r"
+	hwclock -r
+	divider
+fi
 
-	if [ `command -v cmake` ]; then
-		cmake --version
-		divider
-	fi
-} > "$REPORT_FILE" 2>&1
+# =============
+# Tool versions
+# =============
+echo "SHELL=$SHELL"
+divider
 
-cat "$REPORT_FILE"
+if [ "$SHELL" = "/bin/sh" ] || [ "$SHELL" = "/bin/bash" ]; then
+	echo "\$SHELL --version"
+	"$SHELL" --version
+	divider
+fi
+
+if [ `command -v busybox` ]; then
+	echo "busybox --help"
+	busybox --help
+	divider
+fi
+
+if [ `command -v gcc` ]; then
+	echo "gcc --version"
+	gcc --version
+	divider
+fi
+
+if [ `command -v iccarm` ]; then
+	echo "iccarm --version"
+	iccarm --version
+	divider
+fi
+
+if [ `command -v armcc` ]; then
+	echo "armcc"
+	armcc
+	divider
+fi
+
+if [ `command -v cmake` ]; then
+	echo "cmake --version"
+	cmake --version
+	divider
+fi
+
+if [ `command -v dd` ]; then
+	echo "dd --version"
+	# busybox dd --version returns non-zero value -> "|| :"
+	dd --version || :
+fi
+
+if [ `command -v openssl` ]; then
+	echo "openssl version"
+	openssl version
+fi

@@ -120,6 +120,11 @@ REPORT_FILE="./preflight.txt"
         return 0
     }
 
+    # ====================
+    # Generate sysinfo.txt
+    # ====================
+    ./sysinfo.sh
+
     # =====================
     # Test file permissions
     # =====================
