@@ -6,45 +6,47 @@
 #  - defines BOOTSTRAP_SERVER
 . ./common.sh
 
-test_tcp_port()
+test_port()
 {
-    echo "Testing TCP connection to $1:$2"
+    # Check that netcat is available
     if [ ! `command -v nc` ]; then
-        echo "Missing nc, cannot test TCP port reachability"
+        echo "Missing nc, cannot test \"$@\" reachability"
         return 0
     fi
-    # Netcat can be used to test TCP connection to a remote port.
-    # In this test script, the connection should terminate immediately after
-    # successful connection. This can be achieved with "-z" test flag or by
-    # piping "</dev/null" to stdin.
 
-    # If nc has "-z" test option available, use it because piping "</dev/null"
-    # to stdin in some implementations doesn't cause immediate disconnection.
-    if [ ! "`nc -z 2>&1 | grep 'invalid option'`" ]; then
-        nc -zv "$1" "$2"
+    # Check that "-z" option from netcat is available.
+    # - "-z" feels to be more portable way of testing ports than using </dev/null.
+    local Z_OPTION_AVAILABLE="true"
+    if [ "`nc -z 2>&1 | grep 'invalid option'`" ]; then
+        Z_OPTION_AVAILABLE="false"
+    fi
+
+    # Test
+    if [ "$1" = "TCP" ] && [ "$Z_OPTION_AVAILABLE" = "true" ]; then
+        nc -zv "$2" "$3"
         # -z   - test port (not always available)
         # -v   - verbose
-    else
-        nc -v "$1" "$2" </dev/null
-    fi
-    echo "success"
-    divider
-    return 0
-}
 
-test_udp_port()
-{
-    echo "Testing UDP connection to $1:$2"
-    if [ ! `command -v nc` ] || [ "`nc -z 2>&1 | grep 'invalid option'`" ]; then
-        echo "Missing nc with -z option, cannot test UDP port reachability"
+    elif [ "$1" = "TCP" ]; then
+        # piping /dev/null to stdin causes immediate disconnection with TCP in many implementations
+        nc -v "$2" "$3" </dev/null
+
+    elif [ "$1" = "UDP" ] && [ "$Z_OPTION_AVAILABLE" = "true" ]; then
+        nc -uzv -w3 "$2" "$3"
+        # -u   - UDP (wait ICMP message back)
+        # -z   - test port
+        # -v   - verbose
+        # -w3  - timeout after 3 seconds
+
+    elif [ "$1" = "UDP" ]; then
+        echo "Missing nc with -z option, cannot test \"$@\" reachability"
         return 0
+
+    else
+        echo "test_port(), select UDP or TCP, not \"$1\""
+        return 1
     fi
 
-    nc -uzv -w3 "$1" "$2"
-    # -u   - UDP (wait ICMP message back)
-    # -z   - test port
-    # -v   - verbose
-    # -w3  - timeout after 3 seconds
     echo "success"
     divider
     return 0
@@ -70,13 +72,19 @@ else
 fi
 divider
 
-# Test TCP network ports
-test_tcp_port "$LWM2M_SERVER" 5684
-test_tcp_port "$BOOTSTRAP_SERVER" 5684
-
-# Test UDP network ports
-test_udp_port "$LWM2M_SERVER" 5684
-test_udp_port "$BOOTSTRAP_SERVER" 5684
+# Loop through network ports from "network_ports.csv"
+while read destination; do
+    # Skip lines that don't start with UDP or TCP
+    #  - Not using case fallthrough because of portability
+    case "$destination" in
+        UDP* )
+            test_port $destination
+        ;;
+        TCP* )
+            test_port $destination
+        ;;
+    esac
+done < "network_ports.csv"
 
 # Test update download
 echo "Test update download:"

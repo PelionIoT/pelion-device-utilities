@@ -1,5 +1,6 @@
 # Copyright 2018 ARM Ltd.
 PACKAGE_FILES := $(wildcard *.sh)
+PACKAGE_FILES += $(wildcard *.csv)
 PACKAGE_FILES += $(wildcard *.pem)
 PACKAGE_FILES += $(wildcard *.md5)
 PACKAGE_FILES += $(wildcard *.sha256)
