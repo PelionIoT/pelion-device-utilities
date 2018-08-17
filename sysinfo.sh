@@ -13,9 +13,11 @@ id -u
 divider
 
 # Username
-echo "who"
-who
-divider
+if [ `command -v who` ]; then
+	echo "who"
+	who
+	divider
+fi
 
 # Folder permissions
 echo "ls -ld ."
