@@ -8,9 +8,18 @@ BOOTSTRAP_SERVER="bootstrap.us-east-1.mbedcloud.com"
 
 divider()
 {
-    set +x
-    echo "---------------\n"
-    set -x
+    # All echos don't support "\n"
+    # Explicitly use system printf instead of shell integrated one
+    $(which printf) "---------------\n"
+}
+
+extra_info_start()
+{
+    $(which printf) "======== Extra Info ========\n"
+}
+extra_info_stop()
+{
+    $(which printf) "============================\n\n"
 }
 
 measure_time()
@@ -35,4 +44,4 @@ measure_time()
 set -e
 
 # Print all commands
-set -x
+#set -x

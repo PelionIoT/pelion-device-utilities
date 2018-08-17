@@ -61,12 +61,14 @@ REPORT_FILE="./preflight.txt"
 
         # Try open secure channel to given server
         if [ "$1" = "TLS" ]; then
+            echo "TLS"
             openssl s_client -debug -connect "$2" \
                 -CAfile "$3" \
                 -cert "$4" \
                 -key "$5" \
                 -verify_return_error </dev/null
         elif [ "$1" = "DTLS" ]; then
+            echo "DTLS"
             openssl s_client -dtls -debug -connect "$2" \
                 -CAfile "$3" \
                 -cert "$4" \
@@ -123,14 +125,17 @@ REPORT_FILE="./preflight.txt"
     # =====================
     # File creation
     echo "Test file permissions:"
+    echo "touch preflight_testfile.txt"
     touch preflight_testfile.txt
     rm preflight_testfile.txt
     echo "success"
     divider
 
     # Folder creation
-    echo "Folder creation:"
+    echo "Test folder creation:"
+    echo "mkdir preflight_testfolder"
     mkdir preflight_testfolder
+    echo "rmdir preflight_testfolder"
     rmdir preflight_testfolder
     echo "success"
     divider
@@ -142,21 +147,25 @@ REPORT_FILE="./preflight.txt"
     echo "Test entropy generation:"
     echo "Print entropy pool size"
     if [ -e "/proc/sys/kernel/random/" ]; then
+        echo 'find "/proc/sys/kernel/random/"'
         find "/proc/sys/kernel/random/" -type f -exec sh -c "echo {}:; cat {}" \;
-        divider
+        echo
     fi
 
-    echo "In some simulated environments entropy generation can be really slow."
-    echo "This can slow down or even hang mbed Cloud Client startup."
     if [ `command -v dd` ]; then
-        # busybox dd --version returns non-zero value -> "|| :"
-        dd --version || :
         # Not using "iflag=fullblock" as it is not available in all "dd" implementations.
         # This can be worked around with size set to 1 and count to 512.
-        echo "Start gathering entropy... (if the test hangs here, it means that entropy generation is slow)"
-        echo "In debian based distributions installing rng-tools with \"apt-get install rng-tools\" usually"
-        echo "helps entropy generation."
+        extra_info_start
+        echo "In some simulated environments entropy generation can be really slow."
+        echo "This can slow down or even hang mbed Cloud Client startup."
+        echo
+        echo "Below dd command tries to read 512 bytes from /dev/random. If the test"
+        echo "hangs here, it means that entropy generation is slow. In debian based"
+        echo "distributions, installing rng-tools with \"apt-get install rng-tools\""
+        echo "usually increases entropy generation."
+        extra_info_stop
         # Timing the opeartion as not all dd implementations print speed.
+        echo "dd if=/dev/random of=/dev/null bs=1 count=512"
         measure_time dd if=/dev/random of=/dev/null bs=1 count=512
     else
         echo "Missing dd, cannot test entropy generation speed."
@@ -168,15 +177,23 @@ REPORT_FILE="./preflight.txt"
     # Test network
     # ===============
     # Network tests can be executed separately without dependency to other mbed Cloud Client requirements.
+    echo "Test network connectivity:"
+    extra_info_start
+    echo "Network connection is required for Pelion device operation. TCP and UDP selection"
+    echo "can be configured to mbed Cloud Client."
+    echo
+    echo "If network tests fail, it most likely means that there is a firewall configuration"
+    echo "preventing the creation of a new outside network connection."
+    extra_info_stop
+    echo "./network.sh"
     ./network.sh
 
 
     # =================
     # Test certificates
     # =================
-    if [ `command -v openssl` ]; then
-        openssl version
-    else
+    echo "Test certificates:"
+    if [ ! `command -v openssl` ]; then
         echo "Missing openssl, cannot verify certificates."
     fi
 
@@ -186,7 +203,12 @@ REPORT_FILE="./preflight.txt"
        [ -e "mbed_cloud_dev_credentials.c" ]
     then
         echo "Test mbed_cloud_dev_credentials.c:"
-        echo "Warning: parsing C-files into arrays can be unreliable at times."
+        extra_info_start
+        echo "Warning: Parsing arrays from C-files can be very picky about the syntax."
+        echo "If an certificate error is suspected to be in mbed_cloud_dev_credential.c,"
+        echo "it is recommended to use a hex editor to cross reference the parsed der files"
+        echo "with the byte-arrays found from the mbed_cloud_dev_credential.c."
+        extra_info_stop
         # Parse bootstrap CA certificate
         parse_mbed_cloud_dev_credentials_c_array "mbed_cloud_dev_credentials.c" \
             MBED_CLOUD_DEV_BOOTSTRAP_SERVER_ROOT_CA_CERTIFICATE "parsed_bootstrap_ca.der"
@@ -199,17 +221,20 @@ REPORT_FILE="./preflight.txt"
             MBED_CLOUD_DEV_BOOTSTRAP_DEVICE_PRIVATE_KEY "parsed_developer_key.der"
 
         # Convert key and certificates to PEM
+        set -x
         openssl pkey -in "parsed_developer_key.der" -inform der -out "parsed_developer_key.pem"
         openssl x509 -in "parsed_developer_cert.der" -inform der -out "parsed_developer_cert.pem"
         openssl x509 -in "parsed_bootstrap_ca.der" -inform der -out "parsed_bootstrap_ca.pem"
 
         # Delete intermediate DER files
         rm "parsed_bootstrap_ca.der" "parsed_developer_cert.der" "parsed_developer_key.der"
+        set +x
     else
         echo "Missing sed, printf or the certificate, cannot verify mbed_cloud_dev_credentials.c."
     fi
 
     # Check certificates with TLS
+    echo "Test TLS Handshake:"
     if available_openssl; then
         test_certificate "TLS" "$BOOTSTRAP_SERVER:5684" "parsed_bootstrap_ca.pem"       "parsed_developer_cert.pem" "parsed_developer_key.pem"
         test_certificate "TLS" "$BOOTSTRAP_SERVER:5684" "certificates/bootstrap_ca.pem" "developer_cert.pem"        "developer_key.pem"
@@ -218,6 +243,7 @@ REPORT_FILE="./preflight.txt"
     fi
 
     # Check certificates with DTLS (openssl with -dtls)
+    echo "Test DTLS Handshake:"
     if available_openssl_with_dtls; then
         test_certificate "DTLS" "$BOOTSTRAP_SERVER:5684" "parsed_bootstrap_ca.pem"       "parsed_developer_cert.pem" "parsed_developer_key.pem"
         test_certificate "DTLS" "$BOOTSTRAP_SERVER:5684" "certificates/bootstrap_ca.pem" "developer_cert.pem"        "developer_key.pem"

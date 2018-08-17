@@ -22,6 +22,7 @@ test_port()
     fi
 
     # Test
+    echo "Test ping to \"$@\" with netcat:"
     if [ "$1" = "TCP" ] && [ "$Z_OPTION_AVAILABLE" = "true" ]; then
         nc -zv "$2" "$3"
         # -z   - test port (not always available)
@@ -48,7 +49,6 @@ test_port()
     fi
 
     echo "success"
-    divider
     return 0
 }
 
@@ -60,6 +60,7 @@ if [ `command -v nslookup` ]; then
 else
     echo "Missing nslookup, cannot test DNS lookup."
 fi
+echo "success"
 divider
 
 # Test ping Pelion servers
@@ -70,6 +71,7 @@ if [ `command -v ping` ]; then
 else
     echo "Missing ping, cannot test ping to Pelion."
 fi
+echo "success"
 divider
 
 # Loop through network ports from "network_ports.csv"
@@ -85,15 +87,18 @@ while read destination; do
         ;;
     esac
 done < "network_ports.csv"
+divider
 
 # Test update download
 echo "Test update download:"
 TEST_FILE="https://s3.amazonaws.com/mbed-customer-engineering/test.file"
 if [ `command -v wget` ]; then
     wget --version
+    echo "wget \"$TEST_FILE\""
     measure_time wget "$TEST_FILE" --no-check-certificate --output-document "preflight_testbinary.bin"
 elif [ `command -v curl` ]; then
     curl --version
+    echo "curl \"$TEST_FILE\""
     measure_time curl "$TEST_FILE" --insecure --output "preflight_testbinary.bin"
 else
     echo "Missing wget and curl, cannot verify network download."
@@ -103,8 +108,10 @@ divider
 # Check download integrity
 echo "Check download integrity:"
 if [ `command -v sha256sum` ] && [ -e "preflight_testbinary.bin" ]; then
+    echo "sha256sum"
     sha256sum -c "preflight_testbinary.sha256"
 elif [ `command -v md5sum` ]; then
+    echo "md5sum"
     md5sum -c "preflight_testbinary.md5"
 else
     echo "Missing sha256sum and md5sum, cannot verify download integrity."
