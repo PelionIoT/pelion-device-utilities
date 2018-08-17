@@ -63,7 +63,7 @@ fi
 divider
 
 # Test ping Pelion servers
-echo "Test ping Pelion servers:"
+echo "Test ping to Pelion servers:"
 if [ `command -v ping` ]; then
     ping -c 3 "$LWM2M_SERVER"
     ping -c 3 "$BOOTSTRAP_SERVER"
