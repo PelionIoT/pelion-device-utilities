@@ -37,17 +37,17 @@ Following certificates and keys are checked during the preflight.sh. If matching
 | `lwm2m_cert.pem`               | If found, the certificate is tested against Pelion LwM2M server. |
 | `lwm2m_key.pem`                | The private key for lwm2m_cert.pem. |
 
-## network.sh ##
+## network.sh
 This script is automatically executed as part of `preflight.sh` but it can also be executed manually. This is useful when a specific network needs to be tested for Pelion connectivity.
 
-Network test script can be run with:
+The network test script can be ran with:
 
     ./network.sh
 
 ## sysinfo.sh
-Saves OS architecture and distribution information to `./sysinfo.txt` to help mbed Cloud Client or mbed Edge porting and debugging.
+This script is automatically executed as part of `preflight.sh` but it can also be executed manually. This can be useful when extracting information from the current platform.
 
-System info script can be run with:
+The system info script can be ran with:
 
     ./sysinfo.sh
 
