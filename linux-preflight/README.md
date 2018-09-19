@@ -1,5 +1,6 @@
 # Pelion preflight check
-This repository contains test scripts to check mbed Cloud Client or mbed Edge operation requirements on Unix like operating system.
+This folder contains test scripts to check Pelion Device Management Client or Pelion Edge operation requirements on Unix-like operating system.
+
 ## preflight.sh
 This is the main test script for Pelion preflight check. When executed, the script goes through set of tests and creates a log file to `./preflight.txt`. The log file contains all the executed commands and their output. The script halts execution on the first error and needs to succeed without any errors in order for mbed Cloud Client or mbed Edge to work.
 
