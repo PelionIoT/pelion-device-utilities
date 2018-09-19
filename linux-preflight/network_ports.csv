@@ -1,0 +1,14 @@
+# This file configures which ports are tested by network.sh
+#  - All lines starting with something else than TCP or UDP will be ignored
+#  - Extra spaces and tabs are ignored
+
+# Entries are formatted as:
+# [protocol] [address] [port]
+
+# Bootstrap server
+TCP bootstrap.us-east-1.mbedcloud.com 5684
+UDP bootstrap.us-east-1.mbedcloud.com 5684
+
+# LwM2M server
+TCP lwm2m.us-east-1.mbedcloud.com 5684
+UDP lwm2m.us-east-1.mbedcloud.com 5684
