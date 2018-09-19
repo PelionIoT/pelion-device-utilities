@@ -115,7 +115,7 @@ fi
 
 if [ `command -v iccarm` ]; then
 	echo "iccarm --version"
-	iccarm --version
+	iccarm --version || :
 	divider
 fi
 
