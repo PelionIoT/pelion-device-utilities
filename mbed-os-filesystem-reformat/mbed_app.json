@@ -1,0 +1,15 @@
+{
+    "target_overrides": {
+        "*": {
+            "platform.stdio-baud-rate": 115200,
+            "platform.stdio-buffered-serial": true,
+            "platform.stdio-convert-newlines": true,
+            "mbed-trace.enable": true
+        },
+        "K64F": {
+            "storage-selector.storage": "SD_CARD",
+            "storage-selector.filesystem": "FAT",
+            "storage-selector.mount-point": "\"sd\""
+        }
+    }
+}
