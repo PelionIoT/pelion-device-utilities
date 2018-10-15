@@ -1,0 +1,14 @@
+{
+    "macros": [],
+    "target_overrides": {
+        "*": {
+            "target.features_add"               : ["STORAGE"],
+            "platform.stdio-baud-rate"          : 115200,
+            "platform.stdio-convert-newlines"   : true,
+            "platform.stdio-buffered-serial"    : true
+        },
+        "NUCLEO_F429ZI": {
+            "target.components_add"             : ["SD"]
+        }
+    }
+}
