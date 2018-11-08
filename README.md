@@ -1,4 +1,4 @@
-# Pelion Utilities
+# Pelion Device Management Utilities
 
 Collection of debug utilities for Pelion Client and Pelion Edge.
 
