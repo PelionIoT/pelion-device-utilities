@@ -20,7 +20,6 @@
 
 #include "mbed.h"
 #include <stdio.h>
-#include "storage-selector.h"
 #include "BlockDevice.h"
 #include "intelhex.h"
 
@@ -56,7 +55,7 @@ int block_dump(BlockDevice &bd, size_t early_stop)
 
 int main() {
     int retval;
-    BlockDevice *bd = storage_selector();
+    BlockDevice *bd = BlockDevice::get_default_instance();
     printf("Dump start\n");
 
     retval = bd->init();
