@@ -20,18 +20,19 @@
 
 #include "mbed.h"
 #include <stdio.h>
-#include "storage-selector.h"
+#include <stdint.h>
+#include <inttypes.h>
 #include "BlockDevice.h"
 #include "FileSystem.h"
 
 int main() {
     int retval;
-    BlockDevice *bd = storage_selector();
-    FileSystem *fs = filesystem_selector();
+    BlockDevice *bd = BlockDevice::get_default_instance();
+    FileSystem *fs = FileSystem::get_default_instance();
 
     retval = bd->init();
     printf("init() = %d\n", retval);
-    printf("size() = %d", (int)bd->size());
+    printf("size() = %" PRIu64 "\n", (uint64_t)bd->size());
 
     retval = bd->erase(0, bd->size());
     printf("erase() = %d\n", retval);

@@ -20,12 +20,11 @@
 
 #include "mbed.h"
 #include <stdio.h>
-#include "storage-selector.h"
 #include "BlockDevice.h"
 
 int main() {
     int retval;
-    BlockDevice *bd = storage_selector();
+    BlockDevice *bd = BlockDevice::get_default_instance();
 
     retval = bd->init();
     printf("init() = %d\n", retval);
