@@ -25,10 +25,16 @@
 #include <inttypes.h>
 #include "BlockDevice.h"
 #include "FileSystem.h"
+
+#define FAT_FS 0
+#define LITTLE_FS 1
+#if MBED_CONF_APP_FILESYSTEM == LITTLE_FS
 #include "LittleFileSystem.h"
+#else
+#include "FATFileSystem.h"
+#endif
 
 void generate_random(uint8_t *buf, ssize_t size) {
-    //printf("generate_random()\n");
     for (ssize_t i=0; i<size; i++) {
         buf[i] = (uint8_t)rand();
     }
@@ -52,7 +58,6 @@ char* format_bytes(double amount) {
 }
 
 float do_write_test(FileSystem *fs, unsigned int seed, ssize_t test_size_in_bytes, ssize_t blocksize) {
-    //printf("do_write_test(%d)\n", test_size_in_bytes);
     Timer t;
     int retval;
     uint8_t *buf = (uint8_t*)malloc(blocksize);
@@ -77,7 +82,6 @@ float do_write_test(FileSystem *fs, unsigned int seed, ssize_t test_size_in_byte
 
         // Write
         for (ssize_t block_offset=0; block_offset < blocksize;) {
-            //ssize_t written = fs->file_write(file, buf + block_offset, blocksize - block_offset);
             int written = fwrite(buf + block_offset, sizeof(uint8_t), blocksize - block_offset, fid);
             block_offset += written;
         }
@@ -90,16 +94,13 @@ float do_write_test(FileSystem *fs, unsigned int seed, ssize_t test_size_in_byte
         return -1;
     }
 
-    // NO SYNC???
-    //fsync(fid);
-    //fs->file_sync(file);
+    // NOTE: Couldn't find sync(fid)
     t.stop();
     free(buf);
     return t.read() - rand_duration;
 }
 
 float do_read_test(FileSystem *fs, unsigned int seed, ssize_t test_size_in_bytes, ssize_t blocksize) {
-    //printf("do_read_test()\n");
     Timer t;
     int retval;
     uint8_t *ref_buf = (uint8_t*)malloc((size_t)blocksize);
@@ -118,16 +119,12 @@ float do_read_test(FileSystem *fs, unsigned int seed, ssize_t test_size_in_bytes
     fseek(fid, 0, SEEK_SET);
     t.start();
     for (ssize_t offset=0; offset < test_size_in_bytes; offset += blocksize) {
-        //printf("loop %d\n", offset);
-        // Read
         for (ssize_t block_offset=0; block_offset < blocksize;) {
-            //ssize_t read = fs->file_read(file, read_buf + block_offset, blocksize - block_offset);
             int read = fread(read_buf + block_offset, sizeof(uint8_t), blocksize - block_offset, fid);
             if (read == 0) {
                 printf("fread() = 0\n");
                 return -1.0;
             }
-            //printf("loop_i %d %d\n", read, block_offset);
             block_offset += read;
         }
 
@@ -156,6 +153,7 @@ float do_read_test(FileSystem *fs, unsigned int seed, ssize_t test_size_in_bytes
         return -1;
     }
 
+    // Cleanup
     t.stop();
     free(ref_buf);
     free(read_buf);
@@ -204,22 +202,21 @@ void do_test(FileSystem *fs) {
     printf("-----------+-----------+-------------+------------\n");
 }
 
-int main() {
+int _mount(BlockDevice *bd, FileSystem *fs) {
     int retval;
-    BlockDevice *bd = BlockDevice::get_default_instance();
-    LittleFileSystem lfs("default");
-    FileSystem *fs = &lfs;
-    //FileSystem *fs = FileSystem::get_default_instance();
 
-    // https://os.mbed.com/docs/mbed-os/v5.9/reference/blockdevice.html
-    retval = bd->init();
-    if(retval != 0) {
-        printf("init() failed with %d\n", retval);
-        return -1;
+    // Mount FileSystem
+    retval = fs->mount(bd);
+    if (retval == 0) {
+        return 0; // Mount successful
+    } else {
+        printf("Couldn't mount filesystem\n");
+#if MBED_CONF_APP_ALLOW_FILESYSTEM_ERASE == false
+        return -1; // Failed and no erase allowed
+#endif
     }
 
-#define ERASE_MEMORY
-#ifdef ERASE_MEMORY
+    // Erase
     printf("Erasing memory device\n");
     retval = bd->erase(0, bd->size());
     if(retval != 0) {
@@ -227,34 +224,63 @@ int main() {
         return -1;
     }
 
-    retval = fs->mount(bd);
-    printf("retval=%d\n", retval);
-    if (retval != 0) {
-        printf("fs->mount() failed with (%d) \"%s\"\n", retval, strerror(retval));
-        return -1;
-    }
-
-    retval = fs->reformat(bd);
+    // Reformat
+    printf("Reformatting\n");
+    return fs->reformat(bd);
     // https://os.mbed.com/docs/mbed-os/v5.9/reference/filesystem.html
     // https://github.com/ARMmbed/mbed-os/blob/8b6a7aacc5d2b90ba40d89c8eeb680ebee81ea18/platform/mbed_retarget.h#L132-L393
     if(retval != 0) {
         printf("fs->reformat() failed with (%d) \"%s\"\n", retval, strerror(retval));
         return -1;
     }
+    return fs->mount(bd);
+}
+
+int main() {
+    int retval;
+    BlockDevice *bd = BlockDevice::get_default_instance();
+
+    // Initialize BlockDevice
+    // https://os.mbed.com/docs/mbed-os/v5.9/reference/blockdevice.html
+    retval = bd->init();
+    if(retval != 0) {
+        printf("init() failed with %d\n", retval);
+        return -1;
+    }
+
+    // Decide FileSystem
+#if MBED_CONF_APP_FILESYSTEM == LITTLE_FS
+    printf("Testing with LittleFS\n");
+    LittleFileSystem lfs("default");
+    FileSystem *fs = &lfs;
+#else
+    printf("Testing with FAT\n");
+    FATFileSystem fatfs("default");
+    FileSystem *fs = &fatfs;
 #endif
 
+    // Mount
+    retval = _mount(bd, fs);
+    if (retval != 0) {
+        printf("mount() failed with %d\n");
+        return -1;
+    }
+
+    // Test
     printf("Initialization good,\n");
     printf("starting filesystem performance test (write/read/verify)\n");
     printf("\n");
     do_test(fs);
     printf("done\n");
 
+    // Unmount FileSystem
     retval = fs->unmount();
     if (retval != 0) {
         printf("unmount() failed with (%d) \"%s\"\n", retval, strerror(retval));
         return -1;
     }
 
+    // Deinit BlockDevice
     retval = bd->deinit();
     if (retval != 0) {
         printf("deinit() failed with %d\n", retval);

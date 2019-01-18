@@ -1,4 +1,14 @@
 {
+	"config": {
+        "filesystem":{
+            "help": "Options are 0(FAT_FS), 1(LITTLE_FS)",
+            "value": 0
+        },
+        "allow-filesystem-erase": {
+        	"help": "Options are true, false",
+        	"value": true
+        }
+    },
     "target_overrides": {
         "*": {
             "platform.stdio-baud-rate": 115200,
