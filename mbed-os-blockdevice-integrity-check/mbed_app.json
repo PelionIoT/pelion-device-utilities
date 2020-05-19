@@ -1,7 +1,9 @@
 {
     "target_overrides": {
         "*": {
-            "platform.stdio-convert-newlines": true,
+            "platform.stdio-convert-newlines"   : true,
+            "platform.stdio-buffered-serial"    : true,
+            "platform.stdio-flush-at-exit"      : true,
             "platform.stdio-baud-rate"          : 115200,
 	    "platform.default-serial-baud-rate" : 9600,
             "mbed-trace.enable"                 : 0,
@@ -9,10 +11,6 @@
         }
     },
     "config": {
-        "developer-mode": {
-            "help": "Enable Developer mode to skip Factory enrollment",
-            "value": 1
-        },
 	"trace-level": {
             "help": "Options are TRACE_LEVEL_ERROR,TRACE_LEVEL_WARN,TRACE_LEVEL_INFO,TRACE_LEVEL_DEBUG",
             "macro_name": "MBED_TRACE_MAX_LEVEL",
