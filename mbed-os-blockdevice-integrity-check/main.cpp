@@ -17,70 +17,38 @@
 #include <stdio.h>
 #include <algorithm>
 #include "mbed-trace/mbed_trace.h"
+#include "BlockDevice.h"
 #define TRACE_GROUP "APP"
 
-//NOTICE: DEFAULT IS FOR SPI FLASH
-#define TARGET_STORAGE_SIZE (4*1024*1024)
+#define TARGET_STORAGE_SIZE_IN_TEST (0)
 
-#define COMPARE_ONLY  //don't use this for the first time.
-
-// Block devices
-#if COMPONENT_QSPIF
-#include "QSPIFBlockDevice.h"
-#endif
-
-#if COMPONENT_SPIF
-#include "SPIFBlockDevice.h"
-#endif
-
-#if COMPONENT_DATAFLASH
-#include "DataFlashBlockDevice.h"
-#endif 
-
-#if COMPONENT_SD
-#include "SDBlockDevice.h"
-#endif 
-
-#include "HeapBlockDevice.h"
-
-// Physical block device, can be any device that supports the BlockDevice API
-/*
-SDBlockDevice bd(
-        MBED_CONF_SD_SPI_MOSI,
-        MBED_CONF_SD_SPI_MISO,
-        MBED_CONF_SD_SPI_CLK,
-        MBED_CONF_SD_SPI_CS);
-*/
-SPIFBlockDevice bd(
-        MBED_CONF_SPIF_DRIVER_SPI_MOSI,
-        MBED_CONF_SPIF_DRIVER_SPI_MISO,
-        MBED_CONF_SPIF_DRIVER_SPI_CLK,
-        MBED_CONF_SPIF_DRIVER_SPI_CS);
+//#define COMPARE_ONLY  //don't use this for the first time.
 
 // Entry point for the example
 int main() {
     int diff_count = 0;
+    BlockDevice *bd = BlockDevice::get_default_instance();
 
 #ifdef MBED_CONF_MBED_TRACE_ENABLE
     mbed_trace_init();
 #endif
 
-    printf("--- Mbed OS block device example ---\n");
+    printf("--- Mbed OS block device integrity check ---\n");
 
     // Initialize the block device
-    tr_debug("bd.init()\n");
-    int err = bd.init();
-    tr_debug("bd.init -> %d\n", err);
+    tr_debug("bd->init()\n");
+    int err = bd->init();
+    tr_debug("bd->init -> %d\n", err);
     if(err)
     {
-        printf("BlockDevice.Init() failed, error: %d\n", err);
+        printf("BlockDevice initialization failed, error: %d\n", err);
     }
 
     // Get device geometry
-    bd_size_t read_size    = bd.get_read_size();
-    bd_size_t program_size = bd.get_program_size();
-    bd_size_t erase_size   = bd.get_erase_size();
-    bd_size_t size         = bd.size();
+    bd_size_t read_size    = bd->get_read_size();
+    bd_size_t program_size = bd->get_program_size();
+    bd_size_t erase_size   = bd->get_erase_size();
+    bd_size_t size         = bd->size();
 
     printf("--- Block device geometry ---\n");
     printf("read_size:    %lld B\n", read_size);
@@ -89,18 +57,31 @@ int main() {
     printf("size:         %lld B\n", size);
     printf("---\n");
 
-    // Allocate a block with enough space for our data, aligned to the
-    // nearest program_size. This is the minimum size necessary to write
-    // data to a block.
-    //size_t buffer_size = sizeof("Hello Storage!") + program_size-1;
-    //buffer_size = buffer_size - (buffer_size % program_size);
-    //char *buffer = new char[buffer_size];
-
     char str[] = "Hello Storage!";
     size_t str_size = sizeof(str);
     size_t buffer_size = 16384;
+    size_t chunk_count = (int32_t)(bd->size()/buffer_size);
     char *buffer = new char[buffer_size];
     char *readbuf = new char[buffer_size];
+
+#ifdef TARGET_STORAGE_SIZE_IN_TEST
+    if(TARGET_STORAGE_SIZE_IN_TEST > bd->size())
+    {
+        printf("Invalid target test storage size specified. Test stopped.\n");
+        return -1;
+    }
+    else if(TARGET_STORAGE_SIZE_IN_TEST > 0)
+    {
+        printf("Performing partial storage test.\n");
+        chunk_count = TARGET_STORAGE_SIZE_IN_TEST / buffer_size;
+    }
+    else
+    {
+        printf("Performing full storage test.\n");
+    }
+#endif
+
+    printf("\nProgressing..............");
 
     // Update buffer with our string we want to store
     //strncpy(buffer, "Hello Storage!", buffer_size);
@@ -109,18 +90,37 @@ int main() {
         buffer[i] = str[i % str_size];
     }
 
-    for(size_t idx = 0; idx < TARGET_STORAGE_SIZE/buffer_size; idx++)
+    for(size_t idx = 0; idx < chunk_count; idx++)
     {
             int result = 0;
+
+            switch(idx % 4)
+            {
+                case 0:
+                    printf("\b\b\b\b\b\b\b\b\b\b%6.3f%%  /", (float)idx/(float)chunk_count);
+                    break;
+                case 1:
+                    printf("\b\b\b\b\b\b\b\b\b\b%6.3f%%  -", (float)idx/(float)chunk_count);
+                    break;
+                case 2:
+                    printf("\b\b\b\b\b\b\b\b\b\b%6.3f%%  \\", (float)idx/(float)chunk_count);
+                    break;
+                case 3:
+                default:
+                    printf("\b\b\b\b\b\b\b\b\b\b%6.3f%%  |", (float)idx/(float)chunk_count);
+                    break;
+            }
+
+            fflush(stdout);
 
 #if !defined(COMPARE_ONLY)
             if(erase_size < buffer_size)
             {
                 for(size_t t_e = 0; t_e < buffer_size/erase_size; t_e++)
                 {
-		    tr_debug("bd.erase(%d, %lld)\n", idx*buffer_size + t_e*erase_size , erase_size);
-		    err = bd.erase(idx*buffer_size + t_e*erase_size, erase_size);
-		    tr_debug("bd.erase -> %d\n", err);
+		    tr_debug("bd->erase(%d, %lld)\n", idx*buffer_size + t_e*erase_size , erase_size);
+		    err = bd->erase(idx*buffer_size + t_e*erase_size, erase_size);
+		    tr_debug("bd->erase -> %d\n", err);
 		    if(err)
 		    {
 			printf("BlockDevice.erase() failed, error: %d\n", err);
@@ -129,18 +129,18 @@ int main() {
             }
             else
             {
-		tr_debug("bd.erase(%d, %lld)\n", idx*buffer_size, erase_size);
-		err = bd.erase(0, erase_size);
-		tr_debug("bd.erase -> %d\n", err);
+		tr_debug("bd->erase(%d, %lld)\n", idx*buffer_size, erase_size);
+		err = bd->erase(0, erase_size);
+		tr_debug("bd->erase -> %d\n", err);
 		if(err)
 		{
 		    printf("BlockDevice.erase() failed, error: %d\n", err);
 		}
             }
 
-	    tr_debug("bd.program(%p, %d, %d)\n", buffer, idx*buffer_size, buffer_size);
-	    err = bd.program(buffer, idx*buffer_size, buffer_size);
-	    tr_debug("bd.program -> %d\n", err);
+	    tr_debug("bd->program(%p, %d, %d)\n", buffer, idx*buffer_size, buffer_size);
+	    err = bd->program(buffer, idx*buffer_size, buffer_size);
+	    tr_debug("bd->program -> %d\n", err);
 	    if(err)
             {
 	        printf("BlockDevice.program() failed, error: %d\n", err);
@@ -149,9 +149,9 @@ int main() {
 #endif
 	    // Read the data from the first block, note that the program_size must be
 	    // a multiple of the read_size, so we don't have to check for alignment
-	    tr_debug("bd.read(%p, %d, %d)\n", readbuf, idx*buffer_size, buffer_size);
-	    err = bd.read(readbuf, idx*buffer_size, buffer_size);
-	    tr_debug("bd.read -> %d\n", err);
+	    tr_debug("bd->read(%p, %d, %d)\n", readbuf, idx*buffer_size, buffer_size);
+	    err = bd->read(readbuf, idx*buffer_size, buffer_size);
+	    tr_debug("bd->read -> %d\n", err);
 	    if(err)
             {
 	        printf("BlockDevice.read() failed, error: %d\n", err);
@@ -169,8 +169,9 @@ int main() {
 	    // Clobber the buffer so we don't get old data
 	    memset(readbuf, 0xcc, buffer_size);
 
-
     }
+
+    printf("\n\n");
 
     if(diff_count == 0)
     {
@@ -184,9 +185,9 @@ int main() {
     diff_count = 0;
 
     // Deinitialize the block device
-    tr_debug("bd.deinit()\n");
-    err = bd.deinit();
-    tr_debug("bd.deinit -> %d\n", err);
+    tr_debug("bd->deinit()\n");
+    err = bd->deinit();
+    tr_debug("bd->deinit -> %d\n", err);
     if(err)
     {
         printf("BlockDevice.deinit() failed, error: %d\n", err);
