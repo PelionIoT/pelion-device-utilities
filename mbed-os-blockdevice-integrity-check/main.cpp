@@ -63,6 +63,7 @@ int main() {
     size_t chunk_count = (int32_t)(bd->size()/buffer_size);
     char *buffer = new char[buffer_size];
     char *readbuf = new char[buffer_size];
+    size_t idx = 0;
 
 #ifdef TARGET_STORAGE_SIZE_IN_TEST
     if(TARGET_STORAGE_SIZE_IN_TEST > bd->size())
@@ -90,24 +91,24 @@ int main() {
         buffer[i] = str[i % str_size];
     }
 
-    for(size_t idx = 0; idx < chunk_count; idx++)
+    for(idx = 0; idx < chunk_count; idx++)
     {
             int result = 0;
 
             switch(idx % 4)
             {
                 case 0:
-                    printf("\b\b\b\b\b\b\b\b\b\b%6.3f%%  /", (float)idx/(float)chunk_count);
+                    printf("\b\b\b\b\b\b\b\b\b\b\b%7.3f%%  /", ((float)idx/(float)chunk_count)*100);
                     break;
                 case 1:
-                    printf("\b\b\b\b\b\b\b\b\b\b%6.3f%%  -", (float)idx/(float)chunk_count);
+                    printf("\b\b\b\b\b\b\b\b\b\b\b%7.3f%%  -", ((float)idx/(float)chunk_count)*100);
                     break;
                 case 2:
-                    printf("\b\b\b\b\b\b\b\b\b\b%6.3f%%  \\", (float)idx/(float)chunk_count);
+                    printf("\b\b\b\b\b\b\b\b\b\b\b%7.3f%%  \\", ((float)idx/(float)chunk_count)*100);
                     break;
                 case 3:
                 default:
-                    printf("\b\b\b\b\b\b\b\b\b\b%6.3f%%  |", (float)idx/(float)chunk_count);
+                    printf("\b\b\b\b\b\b\b\b\b\b\b%7.3f%%  |", ((float)idx/(float)chunk_count)*100);
                     break;
             }
 
@@ -170,7 +171,8 @@ int main() {
 	    memset(readbuf, 0xcc, buffer_size);
 
     }
-
+    
+    printf("\b\b\b\b\b\b\b\b\b\b\b%7.3f%%  |", ((float)idx/(float)chunk_count)*100);
     printf("\n\n");
 
     if(diff_count == 0)
